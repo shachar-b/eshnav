@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   PASTEL_PALETTES,
+  getLogicalDateString,
   type BoardPoolChore,
   type BoardResponse,
   type CompletedItem,
@@ -214,6 +215,8 @@ export function App() {
       } else {
         playUndoTick(soundEnabled);
       }
+    } catch {
+      await refreshBoard();
     } finally {
       setBusyKey(null);
     }
@@ -231,6 +234,8 @@ export function App() {
       } else {
         playUndoTick(soundEnabled);
       }
+    } catch {
+      await refreshBoard();
     } finally {
       setBusyKey(null);
     }
@@ -250,6 +255,8 @@ export function App() {
       }
       await refreshBoard();
       playUndoTick(soundEnabled);
+    } catch {
+      await refreshBoard();
     } finally {
       setBusyKey(null);
     }
@@ -264,6 +271,9 @@ export function App() {
       await refreshBoard();
       playFanfareChord(soundEnabled);
       burstGoldStars();
+    } catch {
+      setActivePoolChore(null);
+      await refreshBoard();
     } finally {
       setPoolSubmitting(false);
     }
@@ -279,7 +289,7 @@ export function App() {
     return (
       <>
         <HistoryView
-          todayLogicalDate={board?.logicalDate ?? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(clockNow)}
+          todayLogicalDate={board?.logicalDate ?? getLogicalDateString(clockNow)}
           isParentUnlocked={isParentUnlocked}
           onBackToBoard={() => {
             navigate('/');

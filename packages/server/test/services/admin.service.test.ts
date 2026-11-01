@@ -262,11 +262,14 @@ describe('admin.service — profiles, routines, personal chores & pool chores CR
     const enabled = togglePoolChoreActive(db, pool.id, true);
     expect(enabled.isActive).toBe(true);
 
+    // Simulate an active cooldown while in COOLDOWN mode, then switch resetMode to AUTO_DISABLE -> must clear orphaned cooldownEndsAt
+    db.$client.prepare('UPDATE pool_chores SET cooldownEndsAt = ? WHERE id = ?').run(NOW + 60_000, pool.id);
     const updated = updatePoolChore(db, pool.id, { stars: 3, resetMode: 'AUTO_DISABLE' });
     expect(updated.stars).toBe(3);
     expect(updated.resetMode).toBe('AUTO_DISABLE');
+    expect(updated.cooldownEndsAt).toBeNull();
 
-    // Simulate an active cooldown and clear it
+    // Simulate an active cooldown and clear it explicitly
     db.$client.prepare('UPDATE pool_chores SET cooldownEndsAt = ? WHERE id = ?').run(NOW + 60_000, pool.id);
     const reset = resetPoolChoreCooldown(db, pool.id);
     expect(reset.cooldownEndsAt).toBeNull();

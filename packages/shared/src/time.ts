@@ -72,7 +72,10 @@ export function isValidLogicalDate(value: string): boolean {
 export function shiftLogicalDate(date: string, days: number): string {
   const anchor = requireNoonAnchor(date);
   anchor.setUTCDate(anchor.getUTCDate() + days);
-  return anchor.toISOString().slice(0, 10); // safe: synthetic UTC noon, not a wall-clock instant
+  const y = String(anchor.getUTCFullYear()).padStart(4, '0');
+  const m = String(anchor.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(anchor.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /** Israeli week day of a `YYYY-MM-DD` string: 0 = Sunday … 6 = Saturday. */

@@ -197,4 +197,39 @@ describe('history.service — daily audit rings, drill-down & parent past-routin
       expect((err as DomainError).code).toBe('VALIDATION_ERROR');
     }
   });
+
+  it('does not synthesize false MISSED routines or red rings on past dates before a routine was created', () => {
+    const noa = createProfile(
+      db,
+      { name: 'נוֹעָה', avatarEmoji: '🦄', avatarImageUrl: null, pastelTheme: 'SKY', sortOrder: 0, isActive: true },
+      SUN_AFTERNOON,
+    );
+    // Created on Sunday 2026-11-01
+    createRoutine(
+      db,
+      {
+        profileId: noa.id,
+        title: 'קְרִיאַת סֵפֶר',
+        iconEmoji: '📚',
+        timeWindow: 'MORNING',
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      },
+      SUN_AFTERNOON,
+    );
+
+    // Rollover & History for Saturday 2026-10-31 (before creation) must NOT mark it MISSED
+    expect(runDailyRollover(db, '2026-10-31')).toBe(0);
+    const satHistory = getDailyHistory(db, '2026-10-31', SUN_AFTERNOON);
+    const p = satHistory.profiles[0]!;
+    expect(p.routines).toEqual([]);
+    expect(p.rings.MORNING).toEqual({
+      totalScheduled: 0,
+      completedCount: 0,
+      redMissedCount: 0,
+      greyRemainingCount: 0,
+      isWindowElapsed: true,
+    });
+  });
 });

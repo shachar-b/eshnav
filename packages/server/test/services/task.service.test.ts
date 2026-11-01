@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { openDatabase, type AppDb } from '../../src/db/connection.js';
 import { personalChores, routineDailyLogs, starTransactions } from '../../src/db/schema.js';
-import { createPersonalChore, createProfile, createRoutine } from '../../src/services/admin.service.js';
+import {
+  createPersonalChore,
+  createProfile,
+  createRoutine,
+  updatePersonalChore,
+} from '../../src/services/admin.service.js';
 import { DomainError } from '../../src/services/errors.js';
 import { togglePersonalChore, toggleRoutineForToday } from '../../src/services/task.service.js';
 
@@ -148,5 +153,78 @@ describe('task.service — routine & personal chore completion and 1-tap undo', 
   it('throws NOT_FOUND when routine or personal chore does not exist', () => {
     expect(() => toggleRoutineForToday(db, 999, NOW)).toThrowError(DomainError);
     expect(() => togglePersonalChore(db, 999, NOW)).toThrowError(DomainError);
+  });
+
+  it('rejects cross-day uncheck of a past completed personal chore and compensates exact awarded stars if edited same-day', () => {
+    const profile = createProfile(
+      db,
+      { name: 'אִיתַי', avatarEmoji: '🦖', avatarImageUrl: null, pastelTheme: 'MINT', sortOrder: 0, isActive: true },
+      NOW,
+    );
+    const chore = createPersonalChore(
+      db,
+      { profileId: profile.id, title: 'לְסַדֵּר חֶדֶר', iconEmoji: '🧸', stars: 2 },
+      NOW,
+    );
+
+    // Complete at stars=2, then parent edits chore stars to 5, then kid undoes same-day -> must deduct -2 (not -5!)
+    togglePersonalChore(db, chore.id, NOW + 1_000);
+    updatePersonalChore(db, chore.id, { stars: 5 });
+    const sameDayUndo = togglePersonalChore(db, chore.id, NOW + 2_000);
+    expect(sameDayUndo).toEqual({ choreId: chore.id, status: 'PENDING', starsDelta: -2 });
+
+    // Re-complete at stars=5 on 2026-11-01, then attempt uncheck on 2026-11-02 -> must reject with CONFLICT
+    togglePersonalChore(db, chore.id, NOW + 3_000);
+    const nextDay = Date.UTC(2026, 10, 2, 7, 0); // 2026-11-02 09:00 IST
+    try {
+      togglePersonalChore(db, chore.id, nextDay);
+      expect.unreachable('expected CONFLICT on cross-day personal chore uncheck');
+    } catch (err) {
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).code).toBe('CONFLICT');
+    }
+
+    const row = db.select().from(personalChores).where(eq(personalChores.id, chore.id)).get();
+    expect(row?.status).toBe('COMPLETED');
+    expect(row?.completedDate).toBe('2026-11-01');
+  });
+
+  it('rejects completing an inactive or unscheduled routine today', () => {
+    const profile = createProfile(
+      db,
+      { name: 'נוֹעָה', avatarEmoji: '🦄', avatarImageUrl: null, pastelTheme: 'SKY', sortOrder: 0, isActive: true },
+      NOW,
+    );
+    // NOW is Sunday (dow 0); Shabbat-only routine (dow 6) must not be completable today
+    const shabbatOnly = createRoutine(
+      db,
+      {
+        profileId: profile.id,
+        title: 'קִדּוּשׁ',
+        iconEmoji: '🍷',
+        timeWindow: 'EVENING',
+        daysOfWeek: [6],
+        sortOrder: 0,
+        isActive: true,
+      },
+      NOW,
+    );
+    const inactive = createRoutine(
+      db,
+      {
+        profileId: profile.id,
+        title: 'מְכֻבֶּה',
+        iconEmoji: '💤',
+        timeWindow: 'MORNING',
+        daysOfWeek: [0],
+        sortOrder: 1,
+        isActive: false,
+      },
+      NOW,
+    );
+
+    expect(() => toggleRoutineForToday(db, shabbatOnly.id, NOW)).toThrowError(DomainError);
+    expect(() => toggleRoutineForToday(db, inactive.id, NOW)).toThrowError(DomainError);
+    expect(db.select().from(routineDailyLogs).all()).toEqual([]);
   });
 });

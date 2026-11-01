@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import {
   getLogicalDateString,
   type CompletePoolChoreResponse,
@@ -94,9 +94,13 @@ export function undoPoolCompletion(
     const completion = tx.select().from(poolCompletions).where(eq(poolCompletions.id, poolCompletionId)).get();
     if (!completion) throw new DomainError('NOT_FOUND', 'רישום השלמת משימה לא נמצא');
 
+    const logicalDate = getLogicalDateString(now);
+    if (completion.logicalDate !== logicalDate) {
+      throw new DomainError('CONFLICT', 'ניתן לבטל השלמת משימה רק באותו היום');
+    }
+
     tx.delete(poolCompletions).where(eq(poolCompletions.id, completion.id)).run();
 
-    const logicalDate = getLogicalDateString(now);
     if (completion.starsAwarded > 0) {
       tx.insert(starTransactions)
         .values({
@@ -114,13 +118,29 @@ export function undoPoolCompletion(
     if (completion.poolChoreId !== null) {
       const parentChore = tx.select().from(poolChores).where(eq(poolChores.id, completion.poolChoreId)).get();
       if (parentChore) {
-        tx.update(poolChores)
-          .set({
-            cooldownEndsAt: null,
-            ...(parentChore.resetMode === 'AUTO_DISABLE' ? { isActive: true } : {}),
-          })
-          .where(eq(poolChores.id, parentChore.id))
-          .run();
+        const latestRemaining = tx
+          .select({ id: poolCompletions.id, completedAt: poolCompletions.completedAt })
+          .from(poolCompletions)
+          .where(eq(poolCompletions.poolChoreId, parentChore.id))
+          .orderBy(desc(poolCompletions.completedAt), desc(poolCompletions.id))
+          .limit(1)
+          .get();
+
+        const hasNewerCompletion =
+          latestRemaining !== undefined &&
+          (latestRemaining.completedAt > completion.completedAt ||
+            (latestRemaining.completedAt === completion.completedAt && latestRemaining.id > completion.id));
+
+        if (!hasNewerCompletion) {
+          tx.update(poolChores)
+            .set({
+              cooldownEndsAt: null,
+              lastCompletedAt: latestRemaining?.completedAt ?? null,
+              ...(parentChore.resetMode === 'AUTO_DISABLE' ? { isActive: true } : {}),
+            })
+            .where(eq(poolChores.id, parentChore.id))
+            .run();
+        }
       }
     }
 

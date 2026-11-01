@@ -77,6 +77,7 @@ describe('pool.service — קופת המשימות 1-tap completion & undo', () 
 
     const afterUndo = db.select().from(poolChores).where(eq(poolChores.id, chore.id)).get();
     expect(afterUndo?.cooldownEndsAt).toBeNull();
+    expect(afterUndo?.lastCompletedAt).toBe(NOW);
     expect(db.select().from(poolCompletions).all()).toHaveLength(1);
 
     const ledger = db.select().from(starTransactions).all();
@@ -87,7 +88,7 @@ describe('pool.service — קופת המשימות 1-tap completion & undo', () 
     ]);
   });
 
-  it('auto-disables an AUTO_DISABLE pool chore on completion, blocks repeat, and restores isActive=true on undo', () => {
+  it('auto-disables an AUTO_DISABLE pool chore on completion, blocks repeat, and restores full state (isActive=true, lastCompletedAt=null) on undo', () => {
     const profile = createProfile(
       db,
       { name: 'אִיתַי', avatarEmoji: '🦖', avatarImageUrl: null, pastelTheme: 'MINT', sortOrder: 0, isActive: true },
@@ -120,7 +121,7 @@ describe('pool.service — קופת המשימות 1-tap completion & undo', () 
     // Rejects while disabled
     expect(() => completePoolChore(db, dishwasher.id, profile.id, NOW + 1_000)).toThrowError(DomainError);
 
-    // Undo restores isActive = true and deducts 3 stars
+    // Undo restores isActive = true, lastCompletedAt = null, and deducts 3 stars
     const undone = undoPoolCompletion(db, res.poolCompletionId, NOW + 2_000);
     expect(undone).toEqual({
       poolCompletionId: res.poolCompletionId,
@@ -129,8 +130,88 @@ describe('pool.service — קופת המשימות 1-tap completion & undo', () 
     });
 
     const restoredChore = db.select().from(poolChores).where(eq(poolChores.id, dishwasher.id)).get();
-    expect(restoredChore?.isActive).toBe(true);
+    expect(restoredChore).toMatchObject({
+      isActive: true,
+      cooldownEndsAt: null,
+      lastCompletedAt: null,
+    });
     expect(db.select().from(poolCompletions).all()).toEqual([]);
+  });
+
+  it('does not clobber a newer same-day completion state when an earlier completion is undone out of order', () => {
+    const noa = createProfile(
+      db,
+      { name: 'נוֹעָה', avatarEmoji: '🦄', avatarImageUrl: null, pastelTheme: 'SKY', sortOrder: 0, isActive: true },
+      NOW,
+    );
+    const itay = createProfile(
+      db,
+      { name: 'אִיתַי', avatarEmoji: '🦖', avatarImageUrl: null, pastelTheme: 'MINT', sortOrder: 1, isActive: true },
+      NOW,
+    );
+    const chore = createPoolChore(
+      db,
+      {
+        title: 'סִדּוּר סָלוֹן',
+        iconEmoji: '🧹',
+        stars: 2,
+        resetMode: 'COOLDOWN',
+        cooldownMinutes: 30,
+        sortOrder: 0,
+        isActive: true,
+      },
+      NOW,
+    );
+
+    const first = completePoolChore(db, chore.id, noa.id, NOW);
+    const secondTime = NOW + 35 * 60_000;
+    completePoolChore(db, chore.id, itay.id, secondTime);
+
+    // Noa undoes her earlier completion while Itay's newer cooldown is still active
+    undoPoolCompletion(db, first.poolCompletionId, secondTime + 60_000);
+
+    const state = db.select().from(poolChores).where(eq(poolChores.id, chore.id)).get();
+    expect(state).toMatchObject({
+      isActive: true,
+      lastCompletedAt: secondTime,
+      cooldownEndsAt: secondTime + 30 * 60_000,
+    });
+  });
+
+  it('rejects cross-day undo after midnight so sealed past history and daily stars cannot be mutated without PIN', () => {
+    const profile = createProfile(
+      db,
+      { name: 'נוֹעָה', avatarEmoji: '🦄', avatarImageUrl: null, pastelTheme: 'SKY', sortOrder: 0, isActive: true },
+      NOW,
+    );
+    const chore = createPoolChore(
+      db,
+      {
+        title: 'פִּנּוּי מֵדִיחַ',
+        iconEmoji: '🍽️',
+        stars: 3,
+        resetMode: 'AUTO_DISABLE',
+        cooldownMinutes: 60,
+        sortOrder: 0,
+        isActive: true,
+      },
+      NOW,
+    );
+
+    const res = completePoolChore(db, chore.id, profile.id, NOW); // 2026-11-01
+    const nextDay = Date.UTC(2026, 10, 2, 7, 0); // 2026-11-02 09:00 IST
+
+    try {
+      undoPoolCompletion(db, res.poolCompletionId, nextDay);
+      expect.unreachable('expected CONFLICT on cross-day undo');
+    } catch (err) {
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).code).toBe('CONFLICT');
+    }
+
+    expect(db.select().from(poolCompletions).all()).toHaveLength(1);
+    expect(db.select().from(starTransactions).all()).toHaveLength(1);
+    expect(db.select().from(poolChores).where(eq(poolChores.id, chore.id)).get()?.isActive).toBe(false);
   });
 
   it('undoes a completion gracefully even if the parent pool_chore was subsequently deleted', () => {

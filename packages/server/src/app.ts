@@ -96,6 +96,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     logger = false,
   } = options;
 
+  if (!sessionSecret || sessionSecret.trim().length < 32) {
+    throw new Error('sessionSecret (>= 32 chars) is required');
+  }
+
   const app = Fastify({ logger });
   const pinRateLimiter = new PinRateLimiter(5, 60_000);
 

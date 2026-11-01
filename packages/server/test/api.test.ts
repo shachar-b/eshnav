@@ -375,4 +375,54 @@ describe('Fastify REST API (/api/v1/*) & Family Seed', () => {
     expect(lockedRes.statusCode).toBe(200);
     expect(lockedRes.json()).toEqual({ unlocked: false });
   });
+
+  it('rejects weak sessionSecret in buildApp and enforces requireParentAdmin across ALL 21 /api/v1/admin/* protected routes', async () => {
+    await expect(buildApp({ db, sessionSecret: 'too-short' })).rejects.toThrow(/32/);
+
+    const protectedEndpoints: Array<{ method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; url: string; payload?: unknown }> = [
+      { method: 'PATCH', url: '/api/v1/admin/settings', payload: { soundEnabled: false } },
+      { method: 'GET', url: '/api/v1/admin/profiles' },
+      { method: 'POST', url: '/api/v1/admin/profiles', payload: { name: 'גִּיל', avatarEmoji: '🦊', pastelTheme: 'SKY' } },
+      { method: 'PATCH', url: '/api/v1/admin/profiles/1', payload: { name: 'גִּיל' } },
+      { method: 'DELETE', url: '/api/v1/admin/profiles/1' },
+      { method: 'POST', url: '/api/v1/admin/profiles/1/adjust-stars', payload: { starsDelta: 1 } },
+      { method: 'GET', url: '/api/v1/admin/routines' },
+      {
+        method: 'POST',
+        url: '/api/v1/admin/routines',
+        payload: { profileId: 1, title: 'בְּדִיקָה', iconEmoji: '🪥', timeWindow: 'MORNING', daysOfWeek: [0] },
+      },
+      { method: 'PATCH', url: '/api/v1/admin/routines/1', payload: { title: 'בְּדִיקָה' } },
+      { method: 'DELETE', url: '/api/v1/admin/routines/1' },
+      { method: 'GET', url: '/api/v1/admin/personal-chores' },
+      { method: 'POST', url: '/api/v1/admin/personal-chores', payload: { profileId: 1, title: 'בְּדִיקָה', iconEmoji: '🧸', stars: 1 } },
+      { method: 'PATCH', url: '/api/v1/admin/personal-chores/1', payload: { stars: 2 } },
+      { method: 'DELETE', url: '/api/v1/admin/personal-chores/1' },
+      { method: 'GET', url: '/api/v1/admin/pool-chores' },
+      {
+        method: 'POST',
+        url: '/api/v1/admin/pool-chores',
+        payload: { title: 'בְּדִיקָה', iconEmoji: '🧹', stars: 1, resetMode: 'AUTO_DISABLE' },
+      },
+      { method: 'PATCH', url: '/api/v1/admin/pool-chores/1', payload: { stars: 2 } },
+      { method: 'DELETE', url: '/api/v1/admin/pool-chores/1' },
+      { method: 'PATCH', url: '/api/v1/admin/pool-chores/1/toggle-active', payload: { isActive: true } },
+      { method: 'POST', url: '/api/v1/admin/pool-chores/1/reset-cooldown' },
+      { method: 'POST', url: '/api/v1/admin/history/toggle-routine', payload: { routineId: 1, logicalDate: '2026-10-31' } },
+    ];
+
+    for (const ep of protectedEndpoints) {
+      const noAuth = await app.inject({ method: ep.method, url: ep.url, payload: ep.payload as Record<string, unknown> });
+      expect(noAuth.statusCode, `${ep.method} ${ep.url} without cookie`).toBe(401);
+      expect(noAuth.json().error.code).toBe('UNAUTHORIZED');
+
+      const badCookie = await app.inject({
+        method: ep.method,
+        url: ep.url,
+        headers: { cookie: 'eshnav_admin_session=1.9999999999999.deadbeef' },
+        payload: ep.payload as Record<string, unknown>,
+      });
+      expect(badCookie.statusCode, `${ep.method} ${ep.url} with forged cookie`).toBe(401);
+    }
+  });
 });

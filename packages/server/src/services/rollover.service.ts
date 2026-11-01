@@ -41,6 +41,7 @@ export function runDailyRollover(db: AppDb, logicalDate: string): number {
     let inserted = 0;
     for (const { routine } of activeRows) {
       if (!activeProfileIds.has(routine.profileId)) continue;
+      if (getLogicalDateString(routine.createdAt) > logicalDate) continue;
       if (!routine.daysOfWeekJson.includes(dayOfWeek)) continue;
 
       const res = tx

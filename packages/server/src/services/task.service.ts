@@ -1,11 +1,12 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import {
+  getIsraeliDayOfWeek,
   getLogicalDateString,
   type PersonalChoreToggleResponse,
   type RoutineToggleResponse,
 } from '@eshnav/shared';
 import type { AppDb } from '../db/connection.js';
-import { personalChores, routineDailyLogs, routineTemplates, starTransactions } from '../db/schema.js';
+import { personalChores, profiles, routineDailyLogs, routineTemplates, starTransactions } from '../db/schema.js';
 import { DomainError } from './errors.js';
 
 export function toggleRoutineForToday(
@@ -27,6 +28,12 @@ export function toggleRoutineForToday(
     if (existing && existing.status === 'COMPLETED') {
       tx.delete(routineDailyLogs).where(eq(routineDailyLogs.id, existing.id)).run();
       return { routineId, logicalDate, isCompleted: false };
+    }
+
+    const profile = tx.select().from(profiles).where(eq(profiles.id, routine.profileId)).get();
+    if (!profile || !profile.isActive) throw new DomainError('NOT_FOUND', 'פרופיל ילד לא נמצא');
+    if (!routine.isActive || !routine.daysOfWeekJson.includes(getIsraeliDayOfWeek(logicalDate))) {
+      throw new DomainError('CONFLICT', 'השגרה אינה פעילה או אינה מתוזמנת להיום');
     }
 
     if (existing) {
@@ -65,6 +72,9 @@ export function togglePersonalChore(
     const logicalDate = getLogicalDateString(now);
 
     if (chore.status === 'PENDING') {
+      const profile = tx.select().from(profiles).where(eq(profiles.id, chore.profileId)).get();
+      if (!profile || !profile.isActive) throw new DomainError('NOT_FOUND', 'פרופיל ילד לא נמצא');
+
       tx.update(personalChores)
         .set({ status: 'COMPLETED', completedDate: logicalDate, completedAt: now })
         .where(eq(personalChores.id, choreId))
@@ -87,18 +97,39 @@ export function togglePersonalChore(
       return { choreId, status: 'COMPLETED', starsDelta: chore.stars };
     }
 
+    if (chore.completedDate !== logicalDate) {
+      throw new DomainError('CONFLICT', 'ניתן לבטל סימון משימה רק ביום השלמתה');
+    }
+
+    const latestLedger = tx
+      .select({ sourceType: starTransactions.sourceType, starsDelta: starTransactions.starsDelta })
+      .from(starTransactions)
+      .where(
+        and(
+          eq(starTransactions.sourceId, chore.id),
+          inArray(starTransactions.sourceType, ['PERSONAL_CHORE', 'UNDO']),
+        ),
+      )
+      .orderBy(desc(starTransactions.id))
+      .limit(1)
+      .get();
+    const starsToDeduct =
+      latestLedger?.sourceType === 'PERSONAL_CHORE' && latestLedger.starsDelta > 0
+        ? latestLedger.starsDelta
+        : 0;
+
     tx.update(personalChores)
       .set({ status: 'PENDING', completedDate: null, completedAt: null })
       .where(eq(personalChores.id, choreId))
       .run();
 
-    if (chore.stars > 0) {
+    if (starsToDeduct > 0) {
       tx.insert(starTransactions)
         .values({
           profileId: chore.profileId,
           sourceType: 'UNDO',
           sourceId: chore.id,
-          starsDelta: -chore.stars,
+          starsDelta: -starsToDeduct,
           description: `ביטול: ${chore.title}`,
           logicalDate,
           createdAt: now,
@@ -106,6 +137,6 @@ export function togglePersonalChore(
         .run();
     }
 
-    return { choreId, status: 'PENDING', starsDelta: chore.stars > 0 ? -chore.stars : 0 };
+    return { choreId, status: 'PENDING', starsDelta: starsToDeduct > 0 ? -starsToDeduct : 0 };
   });
 }

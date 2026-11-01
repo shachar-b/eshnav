@@ -152,6 +152,7 @@ export function getDailyHistory(
     const scheduledTemplates = activeTemplates.filter(
       (t) =>
         t.profileId === profile.id &&
+        getLogicalDateString(t.createdAt) <= logicalDate &&
         t.daysOfWeekJson.includes(dayOfWeek) &&
         !loggedRoutineIds.has(t.id),
     );

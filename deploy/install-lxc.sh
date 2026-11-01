@@ -79,7 +79,7 @@ fi
 
 echo "==> [6/7] Initializing SQLite WAL database..."
 if [[ ! -f "${DATA_DIR}/eshnav.db" ]]; then
-  su -s /bin/bash "${APP_USER}" -c "cd '${APP_DIR}' && DB_PATH='${DATA_DIR}/eshnav.db' node -e \"import('./packages/server/dist/db/connection.js').then(async ({openDatabase})=>{const {seedFamilyData}=await import('./packages/server/dist/db/seed-data.js');const db=openDatabase('${DATA_DIR}/eshnav.db');seedFamilyData(db);db['\\\$client'].close();})\""
+  su -s /bin/bash "${APP_USER}" -c "cd '${APP_DIR}' && DB_PATH='${DATA_DIR}/eshnav.db' node ./packages/server/dist/db/seed.js"
 fi
 
 echo "==> [7/7] Enabling & starting eshnav.service..."

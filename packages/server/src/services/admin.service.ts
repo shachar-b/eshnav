@@ -377,7 +377,9 @@ export function createPoolChore(db: AppDb, input: CreatePoolChoreBody, now: numb
 }
 
 export function updatePoolChore(db: AppDb, id: number, patch: UpdatePoolChoreBody): PoolChore {
-  const updated = db.update(poolChores).set(patch).where(eq(poolChores.id, id)).returning().get();
+  const values: Partial<typeof poolChores.$inferInsert> =
+    patch.resetMode === 'AUTO_DISABLE' ? { ...patch, cooldownEndsAt: null } : patch;
+  const updated = db.update(poolChores).set(values).where(eq(poolChores.id, id)).returning().get();
   if (!updated) throw new DomainError('NOT_FOUND', 'משימה בקופה לא נמצאה');
   return updated;
 }
