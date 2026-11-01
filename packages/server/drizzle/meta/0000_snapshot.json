@@ -1,0 +1,830 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "39dbabbb-4d2b-44c3-836d-4cd2efb717e7",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "app_settings": {
+      "name": "app_settings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "appTitle": {
+          "name": "appTitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'הבית שלנו'"
+        },
+        "parentPinHash": {
+          "name": "parentPinHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "announcementEnabled": {
+          "name": "announcementEnabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "announcementText": {
+          "name": "announcementText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "announcementEmoji": {
+          "name": "announcementEmoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'📣'"
+        },
+        "soundEnabled": {
+          "name": "soundEnabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "app_settings_singleton": {
+          "name": "app_settings_singleton",
+          "value": "\"app_settings\".\"id\" = 1"
+        }
+      }
+    },
+    "personal_chores": {
+      "name": "personal_chores",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iconEmoji": {
+          "name": "iconEmoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stars": {
+          "name": "stars",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'PENDING'"
+        },
+        "issuedDate": {
+          "name": "issuedDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "completedDate": {
+          "name": "completedDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "personal_chores_profile_status_idx": {
+          "name": "personal_chores_profile_status_idx",
+          "columns": [
+            "profileId",
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "personal_chores_profileId_profiles_id_fk": {
+          "name": "personal_chores_profileId_profiles_id_fk",
+          "tableFrom": "personal_chores",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "profileId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "personal_chores_stars": {
+          "name": "personal_chores_stars",
+          "value": "\"personal_chores\".\"stars\" >= 0"
+        },
+        "personal_chores_status": {
+          "name": "personal_chores_status",
+          "value": "\"personal_chores\".\"status\" IN ('PENDING', 'COMPLETED')"
+        }
+      }
+    },
+    "pool_chores": {
+      "name": "pool_chores",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iconEmoji": {
+          "name": "iconEmoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stars": {
+          "name": "stars",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "resetMode": {
+          "name": "resetMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "cooldownMinutes": {
+          "name": "cooldownMinutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 60
+        },
+        "isActive": {
+          "name": "isActive",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "cooldownEndsAt": {
+          "name": "cooldownEndsAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lastCompletedAt": {
+          "name": "lastCompletedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "pool_chores_stars": {
+          "name": "pool_chores_stars",
+          "value": "\"pool_chores\".\"stars\" >= 0"
+        },
+        "pool_chores_cooldown_minutes": {
+          "name": "pool_chores_cooldown_minutes",
+          "value": "\"pool_chores\".\"cooldownMinutes\" > 0"
+        },
+        "pool_chores_reset_mode": {
+          "name": "pool_chores_reset_mode",
+          "value": "\"pool_chores\".\"resetMode\" IN ('COOLDOWN', 'AUTO_DISABLE')"
+        }
+      }
+    },
+    "pool_completions": {
+      "name": "pool_completions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "poolChoreId": {
+          "name": "poolChoreId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "titleSnapshot": {
+          "name": "titleSnapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iconEmojiSnapshot": {
+          "name": "iconEmojiSnapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "starsAwarded": {
+          "name": "starsAwarded",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "logicalDate": {
+          "name": "logicalDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pool_completions_profile_date_idx": {
+          "name": "pool_completions_profile_date_idx",
+          "columns": [
+            "profileId",
+            "logicalDate"
+          ],
+          "isUnique": false
+        },
+        "pool_completions_date_idx": {
+          "name": "pool_completions_date_idx",
+          "columns": [
+            "logicalDate"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "pool_completions_poolChoreId_pool_chores_id_fk": {
+          "name": "pool_completions_poolChoreId_pool_chores_id_fk",
+          "tableFrom": "pool_completions",
+          "tableTo": "pool_chores",
+          "columnsFrom": [
+            "poolChoreId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pool_completions_profileId_profiles_id_fk": {
+          "name": "pool_completions_profileId_profiles_id_fk",
+          "tableFrom": "pool_completions",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "profileId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "profiles": {
+      "name": "profiles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatarEmoji": {
+          "name": "avatarEmoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatarImageUrl": {
+          "name": "avatarImageUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pastelTheme": {
+          "name": "pastelTheme",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "isActive": {
+          "name": "isActive",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "profiles_pastel_theme": {
+          "name": "profiles_pastel_theme",
+          "value": "\"profiles\".\"pastelTheme\" IN ('SKY', 'CORAL', 'MINT', 'LAVENDER', 'BUTTERCUP', 'ROSE', 'SAGE', 'PERIWINKLE', 'APRICOT', 'AQUA')"
+        }
+      }
+    },
+    "routine_daily_logs": {
+      "name": "routine_daily_logs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "routineId": {
+          "name": "routineId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "titleSnapshot": {
+          "name": "titleSnapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iconEmojiSnapshot": {
+          "name": "iconEmojiSnapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "timeWindowSnapshot": {
+          "name": "timeWindowSnapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "logicalDate": {
+          "name": "logicalDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "routine_daily_logs_routine_date_uq": {
+          "name": "routine_daily_logs_routine_date_uq",
+          "columns": [
+            "routineId",
+            "logicalDate"
+          ],
+          "isUnique": true
+        },
+        "routine_daily_logs_profile_date_idx": {
+          "name": "routine_daily_logs_profile_date_idx",
+          "columns": [
+            "profileId",
+            "logicalDate"
+          ],
+          "isUnique": false
+        },
+        "routine_daily_logs_date_idx": {
+          "name": "routine_daily_logs_date_idx",
+          "columns": [
+            "logicalDate"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "routine_daily_logs_routineId_routine_templates_id_fk": {
+          "name": "routine_daily_logs_routineId_routine_templates_id_fk",
+          "tableFrom": "routine_daily_logs",
+          "tableTo": "routine_templates",
+          "columnsFrom": [
+            "routineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "routine_daily_logs_profileId_profiles_id_fk": {
+          "name": "routine_daily_logs_profileId_profiles_id_fk",
+          "tableFrom": "routine_daily_logs",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "profileId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "routine_daily_logs_time_window": {
+          "name": "routine_daily_logs_time_window",
+          "value": "\"routine_daily_logs\".\"timeWindowSnapshot\" IN ('MORNING', 'AFTERNOON', 'EVENING')"
+        },
+        "routine_daily_logs_status": {
+          "name": "routine_daily_logs_status",
+          "value": "\"routine_daily_logs\".\"status\" IN ('COMPLETED', 'MISSED')"
+        }
+      }
+    },
+    "routine_templates": {
+      "name": "routine_templates",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iconEmoji": {
+          "name": "iconEmoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "timeWindow": {
+          "name": "timeWindow",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "daysOfWeekJson": {
+          "name": "daysOfWeekJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "isActive": {
+          "name": "isActive",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "routine_templates_profile_idx": {
+          "name": "routine_templates_profile_idx",
+          "columns": [
+            "profileId"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "routine_templates_profileId_profiles_id_fk": {
+          "name": "routine_templates_profileId_profiles_id_fk",
+          "tableFrom": "routine_templates",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "profileId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "routine_templates_time_window": {
+          "name": "routine_templates_time_window",
+          "value": "\"routine_templates\".\"timeWindow\" IN ('MORNING', 'AFTERNOON', 'EVENING')"
+        }
+      }
+    },
+    "star_transactions": {
+      "name": "star_transactions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sourceId": {
+          "name": "sourceId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "starsDelta": {
+          "name": "starsDelta",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "logicalDate": {
+          "name": "logicalDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "star_transactions_profile_date_idx": {
+          "name": "star_transactions_profile_date_idx",
+          "columns": [
+            "profileId",
+            "logicalDate"
+          ],
+          "isUnique": false
+        },
+        "star_transactions_date_idx": {
+          "name": "star_transactions_date_idx",
+          "columns": [
+            "logicalDate"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "star_transactions_profileId_profiles_id_fk": {
+          "name": "star_transactions_profileId_profiles_id_fk",
+          "tableFrom": "star_transactions",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "profileId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "star_transactions_source_type": {
+          "name": "star_transactions_source_type",
+          "value": "\"star_transactions\".\"sourceType\" IN ('PERSONAL_CHORE', 'POOL_CHORE', 'UNDO', 'PARENT_ADJUSTMENT')"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

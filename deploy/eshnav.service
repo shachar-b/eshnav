@@ -1,0 +1,27 @@
+[Unit]
+Description=eshnav (אשנב) — Hebrew RTL Family Routine & Chore Board
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=eshnav
+Group=eshnav
+WorkingDirectory=/opt/eshnav
+EnvironmentFile=/etc/eshnav/eshnav.env
+Environment=TZ=Asia/Jerusalem
+Environment=NODE_OPTIONS=--max-old-space-size=96
+ExecStart=/usr/bin/node /opt/eshnav/packages/server/dist/index.js
+Restart=on-failure
+RestartSec=5
+
+# Hardening compatible with unprivileged Proxmox Debian 12 LXC containers
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/eshnav
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

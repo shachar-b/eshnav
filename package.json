@@ -1,0 +1,29 @@
+{
+  "name": "eshnav",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,magenta \"npm run dev -w @eshnav/server\" \"npm run dev -w @eshnav/web\"",
+    "build": "npm run build -w @eshnav/shared && npm run build -w @eshnav/server && npm run build -w @eshnav/web",
+    "start": "npm start -w @eshnav/server",
+    "test": "npm test --workspaces --if-present",
+    "test:e2e": "playwright test",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p e2e/tsconfig.json",
+    "db:seed": "npm run db:seed -w @eshnav/server"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "concurrently": "^10.0.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
